@@ -1,0 +1,30 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+
+"""
+ERGO - Anarchy Online chat bot admin script
+"""
+
+
+import sys
+import yaml
+
+
+def main(argv = []):
+    """
+    Launcher.
+    """
+    
+    # Read settings
+    config = yaml.load(file("/usr/local/etc/ergo.conf", "rb"))
+    
+    # TODO: ...
+    
+    return 0
+
+
+if __name__ == "__main__":
+    status = main(sys.argv[1:])
+    sys.exit(status)
+

@@ -3,7 +3,7 @@
 
 
 """
-Setup for AO Chat.
+Setup for ERGO - Anarchy Online chat bot.
 """
 
 
@@ -19,13 +19,16 @@ setup(
     download_url = "https://github.com/temoon/ergo",
     
     scripts = (
-        "bin/ergo",
+        "bin/ergo_admin",
+        "bin/ergo_start",
     ),
     
     packages = (
+        "ergo",
     ),
     
     package_dir = {
+        "ergo": "lib/ergo"
     },
     
     classifiers = (

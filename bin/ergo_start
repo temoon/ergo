@@ -1,0 +1,73 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+
+"""
+ERGO - Anarchy Online chat bot launcher
+"""
+
+
+import logging
+import logging.handlers
+import sys
+import yaml
+
+from ergo import Bot
+
+
+def main(argv = []):
+    """
+    Launcher.
+    """
+    
+    # Read settings
+    config = yaml.load(file("/usr/local/etc/ergo.conf", "rb"))
+    
+    # Init logger
+    log_format = logging.Formatter("[%(asctime)s] %(threadName)s: %(message)s", "%Y-%m-%d %H:%M:%S %Z")
+    
+    log_handler = logging.FileHandler(config["general"]["log_filename"]) if config["general"]["log_filename"] else logging.StreamHandler(sys.stdout)
+    log_handler.setLevel(logging.DEBUG)
+    log_handler.setFormatter(log_format)
+    
+    log_smtp_handler = logging.handlers.SMTPHandler(
+        mailhost    = (config["general"]["smtp_host"], config["general"]["smtp_port"],),
+        credentials = (config["general"]["smtp_username"], config["general"]["smtp_password"],),
+        fromaddr    = config["general"]["smtp_from"],
+        toaddrs     = config["general"]["smtp_to"],
+        subject     = "Occurrence of an error",
+    )
+    log_smtp_handler.setLevel(logging.CRITICAL)
+    log_smtp_handler.setFormatter(log_format)
+    
+    log = logging.getLogger("ergo")
+    log.setLevel(logging.getLevelName(config["general"]["log_level"].upper()))
+    log.addHandler(log_handler)
+    log.addHandler(log_smtp_handler)
+    
+    # Start workers
+    bots = []
+    
+    for account in config["ao"]["accounts"]:
+        bot = Bot(
+            username       = account["username"],
+            password       = account["password"],
+            host           = account["dimension"]["host"],
+            port           = account["dimension"]["port"],
+            dimension_name = account["dimension"]["name"],
+            character      = account["character"],
+        )
+        
+        bot.start()
+        bots.append(bot)
+    
+    for bot in bots:
+        bot.join()
+    
+    return 0
+
+
+if __name__ == "__main__":
+    status = main(sys.argv[1:])
+    sys.exit(status)
+
