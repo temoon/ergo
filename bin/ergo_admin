@@ -25,7 +25,7 @@ def main(argv = []):
         if error.message:
             return show_error(error.message)
         else:
-            return show_help()
+            return show_help("ergo_admin")
     
     # TODO: ...
     

@@ -25,7 +25,7 @@ def main(argv = []):
         if error.message:
             return show_error(error.message)
         else:
-            return show_help()
+            return show_help("ergo_start")
     
     # Start threads
     threads = []
@@ -52,4 +52,3 @@ def main(argv = []):
 if __name__ == "__main__":
     status = main(sys.argv[1:])
     sys.exit(status)
-

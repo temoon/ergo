@@ -22,6 +22,11 @@ import yaml
 from aochat import Chat, ChatError
 
 
+COMMANDS = {
+    # Dummy
+}
+
+
 class ErgoError(Exception):
     """
     Show message if exists else show help.
@@ -198,6 +203,16 @@ class ErgoThread(threading.Thread):
         log.debug(repr(packet))
 
 
+class ErgoCommand(object):
+    """
+    Command interpreter.
+    """
+    
+    def __init__(self, name):
+        # Register command
+        COMMANDS[name] = self
+
+
 def show_error(message):
     """
     Show error message.
@@ -208,21 +223,23 @@ def show_error(message):
     return 1
 
 
-def show_help():
+def show_help(name = "ergo"):
     """
     Show help.
     """
     
     print >> sys.stdout, """
 Usage:
-    ergo [options]
+    %s [options]
 
 Options:
     -C, --config    Use specified configuration file.
     -D, --debug     Force debug mode.
     
+    -L, --commands  List all commands.
+    
     -?, --help      Show this help.
-"""
+""" % name
     
     return 0
 
@@ -234,10 +251,11 @@ def init(argv = []):
     
     # Command line options
     try:
-        opts, args = getopt.getopt(argv, "C:D?", ["config=", "debug", "help"])
-        opts = dict(opts)
+        opts, args = getopt.getopt(argv, "C:DL?", ["config=", "debug", "commands", "help"])
     except getopt.GetoptError:
         raise ErgoError()
+    else:
+        opts = dict(opts)
     
     if "-?" in opts or "--help" in opts:
         raise ErgoError()
@@ -247,5 +265,8 @@ def init(argv = []):
     
     # Logger
     __builtin__.log = ErgoLogger("debug" if opts.get("-D", opts.get("--debug")) else config["general"]["log_level"], config["general"]["log_filename"])
+    
+    # Load commands
+    import ergo.commands
     
     return args
