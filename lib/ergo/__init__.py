@@ -19,7 +19,14 @@ import threading
 import time
 import yaml
 
-from aochat import Chat, ChatError
+from aochat import (
+    Chat, ChatError,
+    
+    AOSP_PRIVATE_MESSAGE,
+    AOSP_PRIVATE_CHANNEL_MESSAGE,
+    AOSP_CHANNEL_MESSAGE,
+    AOSP_CHANNEL_JOIN,
+)
 
 
 COMMANDS = {
@@ -80,7 +87,7 @@ class ErgoConfig(dict):
             },
             
             "commands": {
-                # Dummy
+                "help": None,
             },
         }
         
@@ -159,7 +166,9 @@ class ErgoThread(threading.Thread):
         self.password = password
         self.host = host
         self.port = port
-        self.character = character
+        self.character_id = 0
+        self.character_name = character
+        self.clan_channel_id = 0
     
     def run(self):
         while True:
@@ -169,7 +178,7 @@ class ErgoThread(threading.Thread):
                 
                 # Select character by name
                 for character in chat.characters:
-                    if character.name == self.character:
+                    if character.name == self.character_name:
                         break
                 else:
                     log.critical("Unknown character: %s" % self.character)
@@ -179,6 +188,8 @@ class ErgoThread(threading.Thread):
                 if character.online:
                     log.critical("Character is online: %s" % character.name)
                     break
+                
+                self.character_id = character.id
                 
                 # Login and listen chat
                 chat.login(character.id)
@@ -199,8 +210,55 @@ class ErgoThread(threading.Thread):
         Callback on incoming packet.
         """
         
-        # Log incoming packets
+        # Log packet
         log.debug(repr(packet))
+        
+        # Private message
+        if packet.type == AOSP_PRIVATE_MESSAGE.type:
+            prefix = "!"
+            message = packet.message.strip()
+            send_message = lambda msg: chat.send_private_message(packet.character_id, msg)
+        # Private channel message
+        elif packet.type == AOSP_PRIVATE_CHANNEL_MESSAGE.type:
+            prefix = "!"
+            message = packet.message.strip()
+            send_message = lambda msg: chat.send_private_channel_message(self.character_id, msg)
+        # Channel message
+        elif packet.type == AOSP_CHANNEL_MESSAGE.type and packet.channel_id == self.clan_channel_id:
+            prefix = "!"
+            message = packet.message.strip()
+            send_message = lambda msg: chat.send_channel_message(packet.channel_id, msg)
+        # Other packet
+        else:
+            if packet.type == AOSP_CHANNEL_JOIN.type and packet.channel_name == "Clan (name unknown)":
+                self.clan_channel_id = packet.channel_id
+                log.debug("Clan channel ID: %s" % self.clan_channel_id)
+            
+            return
+        
+        # Parse message
+        if message.strip().startswith(prefix):
+            args = filter(len, message.split(" "))
+            command = args.pop(0).lstrip(prefix)
+            
+            if not command:
+                return
+        else:
+            return
+        
+        try:
+            # Execute command
+            try:
+                output = COMMANDS[command].callback(chat, packet, args)
+            except KeyError:
+                send_message("Unknown command: %s" % command)
+            else:
+                # Send output to player
+                if output:
+                    send_message(output)
+        except Exception, error:
+            send_message("Unexpected error occurred. Please, try again later.")
+            log.exception(error)
 
 
 class ErgoCommand(object):
@@ -208,7 +266,12 @@ class ErgoCommand(object):
     Command interpreter.
     """
     
-    def __init__(self, name):
+    def __init__(self, name, desc, callback, help_callback = None):
+        self.name          = name
+        self.desc          = desc
+        self.callback      = callback
+        self.help_callback = help_callback
+        
         # Register command
         COMMANDS[name] = self
 
