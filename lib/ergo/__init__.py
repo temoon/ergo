@@ -3,33 +3,157 @@
 
 
 """
-ERGO - Anarchy Online chat bot libraries
+ERGO
+Main module
 """
 
 
+import __builtin__
+
+import getopt
+import glob
 import logging
+import os
+import sys
 import threading
+import time
+import yaml
 
 from aochat import Chat, ChatError
 
 
-class Bot(threading.Thread):
+class ErgoError(Exception):
+    """
+    Show message if exists else show help.
+    """
+    
+    pass
+
+
+class ErgoConfig(dict):
+    """
+    Config.
+    """
+    
+    def __init__(self, filename):
+        dimensions = {
+            "rk1": {
+                "host": "chat.d1.funcom.com",
+                "port": 7101,
+                "name": "Atlantean",
+            },
+            
+            "rk2": {
+                "host": "chat.d2.funcom.com",
+                "port": 7102,
+                "name": "Rimor",
+            },
+        }
+        
+        config = {
+            "general": {
+                "include": "ergo.d",
+                
+                "log_level": "info",
+                "log_filename": None,
+            },
+            
+            "ao": {
+                "dimensions": [
+                    dimensions["rk1"],
+                    dimensions["rk2"],
+                ],
+                
+                "accounts": [
+                    {
+                        "username": "ergo",
+                        "password": "",
+                        "dimension": dimensions["rk1"],
+                        "character": "Ergo",
+                    },
+                ],
+            },
+            
+            "commands": {
+                # Dummy
+            },
+        }
+        
+        # Read settings
+        if filename:
+            config = self.merge(self.read(filename), config)
+        
+        # Merge command settings
+        for filename in filter(os.path.isfile, glob.glob(os.path.join(config["general"]["include"], "*.conf"))):
+            config = self.merge(config, self.read(filename))
+        
+        dict.__init__(self, config)
+    
+    @staticmethod
+    def read(filename):
+        """
+        Reads YAML file.
+        """
+        
+        try:
+            config = yaml.load(file(filename, "r")) or {}
+        except IOError, error:
+            raise ErgoError("Config '%s' reading error [%d]: %s" % (filename, error.errno, error.strerror))
+        except yaml.YAMLError, error:
+            raise ErgoError("Config '%s' parsing error in position (%s:%s): %s" % (filename, error.problem_mark.line + 1, error.problem_mark.column + 1, error.problem))
+        
+        return config
+    
+    @staticmethod
+    def merge(original, default):
+        """
+        Merges two configs.
+        """
+        
+        if issubclass(type(original), dict) and issubclass(type(default), dict):
+            for key in default:
+                if key in original:
+                    original[key] = ErgoConfig.merge(original[key], default[key])
+                else:
+                    original[key] = default[key]
+        
+        return original
+
+
+class ErgoLogger(logging.Logger):
+    """
+    Logger.
+    """
+    
+    def __init__(self, level, filename):
+        logging.Logger.__init__(self, "ergo")
+        
+        format = logging.Formatter("[%(asctime)s] %(threadName)s: %(message)s", "%Y-%m-%d %H:%M:%S %Z")
+        
+        handler = logging.FileHandler(filename) if filename else logging.StreamHandler(sys.stdout)
+        handler.setLevel(logging.DEBUG)
+        handler.setFormatter(format)
+        
+        self.setLevel(logging.getLevelName(level.upper()))
+        self.addHandler(handler)
+
+
+class ErgoThread(threading.Thread):
     """
     Bot instance.
     """
     
-    def __init__(self, username, password, host, port, character, dimension_name):
+    def __init__(self, username, password, host, port, character, dimension):
         threading.Thread.__init__(self)
         
-        # Handlers
-        self.name      = "%s, %s" % (character, dimension_name,)
-        self.log       = logging.getLogger("ergo")
+        # Thread settings
+        self.name = "%s, %s" % (character, dimension,)
         
-        # AO chat connection options
-        self.username  = username
-        self.password  = password
-        self.host      = host
-        self.port      = port
+        # AO chat connection settings
+        self.username = username
+        self.password = password
+        self.host = host
+        self.port = port
         self.character = character
     
     def run(self):
@@ -43,28 +167,85 @@ class Bot(threading.Thread):
                     if character.name == self.character:
                         break
                 else:
-                    self.log.critical("Unknown character '%s'" % self.character)
+                    log.critical("Unknown character: %s" % self.character)
                     break
                 
                 # Check if online
                 if character.online:
-                    self.log.critical("Character '%s' is online" % character.name)
+                    log.critical("Character is online: %s" % character.name)
                     break
                 
                 # Login and listen chat
                 chat.login(character.id)
                 chat.start(self.callback)
             except ChatError, error:
-                self.log.error(error)
+                log.error(error)
                 continue
             except SystemExit:
                 break
             except Exception, error:
-                self.log.exception(error)
+                log.exception(error)
                 continue
+            finally:
+                time.sleep(1)
     
     def callback(self, chat, packet):
-        # Log incoming packets
-        self.log.debug(repr(packet))
+        """
+        Callback on incoming packet.
+        """
         
-        # TODO: ...
+        # Log incoming packets
+        log.debug(repr(packet))
+
+
+def show_error(message):
+    """
+    Show error message.
+    """
+    
+    print >> sys.stderr, str(message).capitalize()
+    
+    return 1
+
+
+def show_help():
+    """
+    Show help.
+    """
+    
+    print >> sys.stdout, """
+Usage:
+    ergo [options]
+
+Options:
+    -C, --config    Use specified configuration file.
+    -D, --debug     Force debug mode.
+    
+    -?, --help      Show this help.
+"""
+    
+    return 0
+
+
+def init(argv = []):
+    """
+    Initializer.
+    """
+    
+    # Command line options
+    try:
+        opts, args = getopt.getopt(argv, "C:D?", ["config=", "debug", "help"])
+        opts = dict(opts)
+    except getopt.GetoptError:
+        raise ErgoError()
+    
+    if "-?" in opts or "--help" in opts:
+        raise ErgoError()
+    
+    # Config
+    __builtin__.config = ErgoConfig(opts.get("-C", opts.get("--config", None)))
+    
+    # Logger
+    __builtin__.log = ErgoLogger("debug" if opts.get("-D", opts.get("--debug")) else config["general"]["log_level"], config["general"]["log_filename"])
+    
+    return args

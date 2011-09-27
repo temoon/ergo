@@ -3,5 +3,6 @@
 
 
 """
-ERGO - Anarchy Online chat bot commands (plugins)
+ERGO
+Commands (plugins)
 """

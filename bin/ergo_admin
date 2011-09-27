@@ -3,12 +3,14 @@
 
 
 """
-ERGO - Anarchy Online chat bot admin script
+ERGO
+Administrator console
 """
 
 
 import sys
-import yaml
+
+from ergo import init, show_error, show_help, ErgoError
 
 
 def main(argv = []):
@@ -16,8 +18,14 @@ def main(argv = []):
     Launcher.
     """
     
-    # Read settings
-    config = yaml.load(file("/usr/local/etc/ergo.conf", "rb"))
+    # Initialize
+    try:
+        args = init(argv)
+    except ErgoError, error:
+        if error.message:
+            return show_error(error.message)
+        else:
+            return show_help()
     
     # TODO: ...
     
@@ -27,4 +35,3 @@ def main(argv = []):
 if __name__ == "__main__":
     status = main(sys.argv[1:])
     sys.exit(status)
-
