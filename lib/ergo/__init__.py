@@ -248,17 +248,16 @@ class ErgoThread(threading.Thread):
         else:
             return
         
+        # Execute command
         try:
-            # Execute command
             try:
                 output = COMMANDS[command].callback(chat, packet, args)
+                
+                if output:
+                    send_message(output)
             except KeyError:
                 send_message("Unknown command: %s" % command)
                 return
-            
-            # Send output to player
-            if output:
-                send_message(output)
         except Exception, error:
             send_message("Unexpected error occurred. Please, try again later.")
             log.exception(error)
@@ -269,11 +268,11 @@ class ErgoCommand(object):
     Command interpreter.
     """
     
-    def __init__(self, name, desc, callback, help_callback = None):
-        self.name          = name
-        self.desc          = desc
-        self.callback      = callback
-        self.help_callback = help_callback
+    def __init__(self, name, desc, callback, help = None):
+        self.name     = name
+        self.desc     = desc
+        self.callback = callback
+        self.help     = help
         
         # Register command
         COMMANDS[name] = self
