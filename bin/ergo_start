@@ -20,7 +20,7 @@ def main(argv = []):
     
     # Initialize
     try:
-        args = init(argv)
+        init(argv)
     except ErgoError, error:
         if error.message:
             return show_error(error.message)
@@ -32,10 +32,10 @@ def main(argv = []):
     
     for account in config["ao"]["accounts"]:
         ergo = ErgoThread(
-            username = account["username"],
-            password = account["password"],
-            host = account["dimension"]["host"],
-            port = account["dimension"]["port"],
+            username  = account["username"],
+            password  = account["password"],
+            host      = account["dimension"]["host"],
+            port      = account["dimension"]["port"],
             dimension = account["dimension"]["name"],
             character = account["character"],
         )

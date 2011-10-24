@@ -36,7 +36,7 @@ COMMANDS = {
 
 class ErgoError(Exception):
     """
-    Show message if exists else show help.
+    You should show message if exists else show help.
     """
     
     pass
