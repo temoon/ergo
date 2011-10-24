@@ -12,7 +12,7 @@ from setuptools import setup
 
 setup(
     name = "ergo",
-    version = "0.1.0.5pa",
+    version = "0.1.0.6pa",
     description = "ERGO - Anarchy Online chat bot",
     author = "Tema Novikov",
     author_email = "temoon@temoon.pp.ru",

@@ -88,6 +88,8 @@ class ErgoConfig(dict):
             
             "commands": {
                 "help": None,
+                "join": None,
+                "leave": None,
             },
         }
         
@@ -215,17 +217,17 @@ class ErgoThread(threading.Thread):
         
         # Private message
         if packet.type == AOSP_PRIVATE_MESSAGE.type:
-            prefix = "!"
+            prefix = ""
             message = packet.message.strip()
             send_message = lambda msg: chat.send_private_message(packet.character_id, msg)
         # Private channel message
         elif packet.type == AOSP_PRIVATE_CHANNEL_MESSAGE.type:
-            prefix = "!"
+            prefix = "#"
             message = packet.message.strip()
             send_message = lambda msg: chat.send_private_channel_message(self.character_id, msg)
         # Channel message
         elif packet.type == AOSP_CHANNEL_MESSAGE.type and packet.channel_id == self.clan_channel_id:
-            prefix = "!"
+            prefix = "#"
             message = packet.message.strip()
             send_message = lambda msg: chat.send_channel_message(packet.channel_id, msg)
         # Other packet
@@ -252,10 +254,11 @@ class ErgoThread(threading.Thread):
                 output = COMMANDS[command].callback(chat, packet, args)
             except KeyError:
                 send_message("Unknown command: %s" % command)
-            else:
-                # Send output to player
-                if output:
-                    send_message(output)
+                return
+            
+            # Send output to player
+            if output:
+                send_message(output)
         except Exception, error:
             send_message("Unexpected error occurred. Please, try again later.")
             log.exception(error)
