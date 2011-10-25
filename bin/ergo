@@ -3,14 +3,18 @@
 
 
 """
-ERGO
-Launcher
+Launcher.
 """
 
 
 import sys
 
-from ergo import init, show_error, show_help, ErgoError, ErgoThread
+from ergo import (
+    init, show_error, show_help,
+    
+    Error    as ErgoError,
+    Instance as ErgoInstance,
+)
 
 
 def main(argv = []):
@@ -20,18 +24,17 @@ def main(argv = []):
     
     # Initialize
     try:
-        init(argv)
+        # After this globals available: config, log
+        if not init(argv):
+            return 0
     except ErgoError, error:
-        if error.message:
-            return show_error(error.message)
-        else:
-            return show_help("ergo_start")
+        return show_error(error.message)
     
     # Start threads
     threads = []
     
     for account in config["ao"]["accounts"]:
-        ergo = ErgoThread(
+        ergo = ErgoInstance(
             username  = account["username"],
             password  = account["password"],
             host      = account["dimension"]["host"],
@@ -41,10 +44,11 @@ def main(argv = []):
         )
         
         ergo.start()
+        
         threads.append(ergo)
     
-    for ergo in threads:
-        ergo.join()
+    for thread in threads:
+        thread.join()
     
     return 0
 

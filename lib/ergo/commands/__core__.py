@@ -58,7 +58,6 @@ def leave_help():
 help = ErgoCommand(
     name     = "help",
     desc     = "Usage information",
-    
     callback = help_callback,
     help     = help_help,
 )
@@ -66,7 +65,6 @@ help = ErgoCommand(
 join  = ErgoCommand(
     name     = "join",
     desc     = "Join private channel",
-    
     callback = join_callback,
     help     = join_help,
 )
@@ -74,7 +72,6 @@ join  = ErgoCommand(
 leave = ErgoCommand(
     name     = "leave",
     desc     = "Leave private channel",
-    
     callback = leave_callback,
     help     = leave_help,
 )

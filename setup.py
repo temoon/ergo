@@ -11,16 +11,15 @@ from setuptools import setup
 
 
 setup(
-    name = "ergo",
-    version = "0.1.0.6pa",
-    description = "ERGO - Anarchy Online chat bot",
-    author = "Tema Novikov",
+    name         = "ergo",
+    version      = "0.1.0.6pa",
+    description  = "ERGO - Anarchy Online chat bot",
+    author       = "Tema Novikov",
     author_email = "temoon@temoon.pp.ru",
     download_url = "https://github.com/temoon/ergo",
     
     scripts = (
-        "bin/ergo_admin",
-        "bin/ergo_start",
+        "bin/ergo",
     ),
     
     packages = (
@@ -29,7 +28,7 @@ setup(
     ),
     
     package_dir = {
-        "ergo": "lib/ergo",
+        "ergo":          "lib/ergo",
         "ergo.commands": "lib/ergo/commands",
     },
     

@@ -3,8 +3,7 @@
 
 
 """
-ERGO
-Main module
+Main module.
 """
 
 
@@ -34,15 +33,15 @@ COMMANDS = {
 }
 
 
-class ErgoError(Exception):
+class Error(Exception):
     """
-    You should show message if exists else show help.
+    Base exception.
     """
     
     pass
 
 
-class ErgoConfig(dict):
+class Config(dict):
     """
     Config.
     """
@@ -64,10 +63,15 @@ class ErgoConfig(dict):
         
         config = {
             "general": {
-                "include": "ergo.d",
+                "include":      "ergo.d",
                 
-                "log_level": "info",
+                "log_level":    "info",
                 "log_filename": None,
+            },
+            
+            "chat": {
+                "prefix_private": "",
+                "prefix_group":   "#",
             },
             
             "ao": {
@@ -78,8 +82,8 @@ class ErgoConfig(dict):
                 
                 "accounts": [
                     {
-                        "username": "ergo",
-                        "password": "",
+                        "username":  "ergo",
+                        "password":  "",
                         "dimension": dimensions["rk1"],
                         "character": "Ergo",
                     },
@@ -87,8 +91,8 @@ class ErgoConfig(dict):
             },
             
             "commands": {
-                "help": None,
-                "join": None,
+                "help":  None,
+                "join":  None,
                 "leave": None,
             },
         }
@@ -106,35 +110,35 @@ class ErgoConfig(dict):
     @staticmethod
     def read(filename):
         """
-        Reads YAML file.
+        Read YAML config.
         """
         
         try:
             config = yaml.load(file(filename, "r")) or {}
         except IOError, error:
-            raise ErgoError("Config '%s' reading error [%d]: %s" % (filename, error.errno, error.strerror))
+            raise Error("Config '%s' reading error [%d]: %s" % (filename, error.errno, error.strerror))
         except yaml.YAMLError, error:
-            raise ErgoError("Config '%s' parsing error in position (%s:%s): %s" % (filename, error.problem_mark.line + 1, error.problem_mark.column + 1, error.problem))
+            raise Error("Config '%s' parsing error in position (%s:%s): %s" % (filename, error.problem_mark.line + 1, error.problem_mark.column + 1, error.problem))
         
         return config
     
     @staticmethod
     def merge(original, default):
         """
-        Merges two configs.
+        Merge two configs.
         """
         
         if issubclass(type(original), dict) and issubclass(type(default), dict):
             for key in default:
                 if key in original:
-                    original[key] = ErgoConfig.merge(original[key], default[key])
+                    original[key] = Config.merge(original[key], default[key])
                 else:
                     original[key] = default[key]
         
         return original
 
 
-class ErgoLogger(logging.Logger):
+class Logger(logging.Logger):
     """
     Logger.
     """
@@ -152,7 +156,7 @@ class ErgoLogger(logging.Logger):
         self.addHandler(handler)
 
 
-class ErgoThread(threading.Thread):
+class Instance(threading.Thread):
     """
     Bot instance.
     """
@@ -161,15 +165,15 @@ class ErgoThread(threading.Thread):
         threading.Thread.__init__(self)
         
         # Thread settings
-        self.name = "%s, %s" % (character, dimension,)
+        self.name            = "%s, %s" % (character, dimension,)
         
         # AO chat connection settings
-        self.username = username
-        self.password = password
-        self.host = host
-        self.port = port
-        self.character_id = 0
-        self.character_name = character
+        self.username        = username
+        self.password        = password
+        self.host            = host
+        self.port            = port
+        self.character_id    = 0
+        self.character_name  = character
         self.clan_channel_id = 0
     
     def run(self):
@@ -209,38 +213,45 @@ class ErgoThread(threading.Thread):
     
     def callback(self, chat, packet):
         """
-        Callback on incoming packet.
+        Callback for incoming packet.
         """
+        
+        def send_private_message(message):
+            chat.send_private_message(packet.character_id, message)
+        
+        def send_private_channel_message(message):
+            chat.send_private_channel_message(self.character_id, message)
+        
+        def send_channel_message(message):
+            chat.send_channel_message(packet.channel_id, message)
         
         # Log packet
         log.debug(repr(packet))
         
+        message = packet.message.strip()
+        
         # Private message
         if packet.type == AOSP_PRIVATE_MESSAGE.type:
-            prefix = ""
-            message = packet.message.strip()
-            send_message = lambda msg: chat.send_private_message(packet.character_id, msg)
+            prefix       = config["chat"]["prefix_private"]
+            send_message = send_private_message
         # Private channel message
         elif packet.type == AOSP_PRIVATE_CHANNEL_MESSAGE.type:
-            prefix = "#"
-            message = packet.message.strip()
-            send_message = lambda msg: chat.send_private_channel_message(self.character_id, msg)
+            prefix       = config["chat"]["prefix_group"]
+            send_message = send_private_channel_message
         # Channel message
         elif packet.type == AOSP_CHANNEL_MESSAGE.type and packet.channel_id == self.clan_channel_id:
-            prefix = "#"
-            message = packet.message.strip()
-            send_message = lambda msg: chat.send_channel_message(packet.channel_id, msg)
+            prefix       = config["chat"]["prefix_group"]
+            send_message = send_channel_message
         # Other packet
         else:
             if packet.type == AOSP_CHANNEL_JOIN.type and packet.channel_name == "Clan (name unknown)":
                 self.clan_channel_id = packet.channel_id
-                log.debug("Clan channel ID: %s" % self.clan_channel_id)
             
             return
         
         # Parse message
         if message.strip().startswith(prefix):
-            args = filter(len, message.split(" "))
+            args    = filter(len, message.split(" "))
             command = args.pop(0).lstrip(prefix)
             
             if not command:
@@ -256,14 +267,14 @@ class ErgoThread(threading.Thread):
                 if output:
                     send_message(output)
             except KeyError:
-                send_message("Unknown command: %s" % command)
+                send_message("Unknown command: %s. Type 'help' for list commands." % command)
                 return
         except Exception, error:
             send_message("Unexpected error occurred. Please, try again later.")
             log.exception(error)
 
 
-class ErgoCommand(object):
+class Command(object):
     """
     Command interpreter.
     """
@@ -283,19 +294,19 @@ def show_error(message):
     Show error message.
     """
     
-    print >> sys.stderr, str(message).capitalize()
+    print >> sys.stderr, message
     
     return 1
 
 
-def show_help(name = "ergo"):
+def show_help():
     """
     Show help.
     """
     
     print >> sys.stdout, """
 Usage:
-    %s [options]
+    ergo [options]
 
 Options:
     -C, --config    Use specified configuration file.
@@ -304,7 +315,15 @@ Options:
     -L, --commands  List all commands.
     
     -?, --help      Show this help.
-""" % name
+"""
+    
+    return 0
+
+
+def show_commands():
+    """
+    List commands.
+    """
     
     return 0
 
@@ -318,20 +337,29 @@ def init(argv = []):
     try:
         opts, args = getopt.getopt(argv, "C:DL?", ["config=", "debug", "commands", "help"])
     except getopt.GetoptError:
-        raise ErgoError()
+        return show_help()
     else:
         opts = dict(opts)
     
     if "-?" in opts or "--help" in opts:
-        raise ErgoError()
+        return show_help()
     
     # Config
-    __builtin__.config = ErgoConfig(opts.get("-C", opts.get("--config", None)))
+    __builtin__.config = Config(opts.get("-C", opts.get("--config")))
     
     # Logger
-    __builtin__.log = ErgoLogger("debug" if opts.get("-D", opts.get("--debug")) else config["general"]["log_level"], config["general"]["log_filename"])
+    if opts.get("-D", opts.get("--debug")):
+        log_level = "debug"
+    else:
+        log_level = config["general"]["log_level"]
+    
+    __builtin__.log = Logger(log_level, config["general"]["log_filename"])
     
     # Load commands
     import ergo.commands
     
-    return args
+    # List commands
+    if opts.get("-L", opts.get("--commands")):
+        pass
+    
+    return 1
