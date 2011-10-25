@@ -9,7 +9,7 @@ Core commands
 
 
 from aochat.aoml import *
-from ergo import ErgoCommand, COMMANDS
+from ergo import Command as ErgoCommand, COMMANDS
 
 
 ### CALLBACKS ##################################################################
