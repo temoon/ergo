@@ -91,9 +91,7 @@ class Config(dict):
             },
             
             "commands": {
-                "help":  None,
-                "join":  None,
-                "leave": None,
+                # Dummy
             },
         }
         
@@ -325,6 +323,9 @@ def show_commands():
     List commands.
     """
     
+    for command in sorted(COMMANDS):
+        print >> sys.stdout, "\x1b[01m%s\x1b[0m - %s" % (COMMANDS[command].name, COMMANDS[command].desc)
+    
     return 0
 
 
@@ -348,7 +349,7 @@ def init(argv = []):
     __builtin__.config = Config(opts.get("-C", opts.get("--config")))
     
     # Logger
-    if opts.get("-D", opts.get("--debug")):
+    if "-D" in opts or "--debug" in opts:
         log_level = "debug"
     else:
         log_level = config["general"]["log_level"]
@@ -359,7 +360,7 @@ def init(argv = []):
     import ergo.commands
     
     # List commands
-    if opts.get("-L", opts.get("--commands")):
-        pass
+    if "-L" in opts or "--commands" in opts:
+        return show_commands()
     
     return 1

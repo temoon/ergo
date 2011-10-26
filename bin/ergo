@@ -10,7 +10,7 @@ Launcher.
 import sys
 
 from ergo import (
-    init, show_error, show_help,
+    init, show_error,
     
     Error    as ErgoError,
     Instance as ErgoInstance,
