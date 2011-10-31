@@ -3,13 +3,31 @@
 
 
 """
-ERGO
-Core commands
+Commands.
 """
 
 
 from aochat.aoml import *
-from ergo import Command as ErgoCommand, COMMANDS
+
+
+COMMANDS = {
+    # Dummy
+}
+
+
+class Command(object):
+    """
+    Command interpreter.
+    """
+    
+    def __init__(self, name, desc, callback, help = None):
+        self.name     = name
+        self.desc     = desc
+        self.callback = callback
+        self.help     = help
+        
+        # Register command
+        COMMANDS[name] = self
 
 
 ### CALLBACKS ##################################################################
@@ -55,21 +73,21 @@ def leave_help():
 
 ### COMMANDS ###################################################################
 
-help = ErgoCommand(
+help = Command(
     name     = "help",
     desc     = "Usage information",
     callback = help_callback,
     help     = help_help,
 )
 
-join  = ErgoCommand(
+join = Command(
     name     = "join",
     desc     = "Join private channel",
     callback = join_callback,
     help     = join_help,
 )
 
-leave = ErgoCommand(
+leave = Command(
     name     = "leave",
     desc     = "Leave private channel",
     callback = leave_callback,

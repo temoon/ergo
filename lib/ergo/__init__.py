@@ -13,6 +13,7 @@ import getopt
 import glob
 import logging
 import os
+import pkg_resources
 import sys
 import threading
 import time
@@ -27,10 +28,7 @@ from aochat import (
     AOSP_CHANNEL_JOIN,
 )
 
-
-COMMANDS = {
-    # Dummy
-}
+from ergo.commands import Command, COMMANDS
 
 
 class Error(Exception):
@@ -272,21 +270,6 @@ class Instance(threading.Thread):
             log.exception(error)
 
 
-class Command(object):
-    """
-    Command interpreter.
-    """
-    
-    def __init__(self, name, desc, callback, help = None):
-        self.name     = name
-        self.desc     = desc
-        self.callback = callback
-        self.help     = help
-        
-        # Register command
-        COMMANDS[name] = self
-
-
 def show_error(message):
     """
     Show error message.
@@ -356,8 +339,9 @@ def init(argv = []):
     
     __builtin__.log = Logger(log_level, config["general"]["log_filename"])
     
-    # Load commands
-    import ergo.commands
+    # Load plugins
+    for e in pkg_resources.iter_entry_points("ergo.commands"):
+        ergo.commands.__dict__[e.name] = e.load()
     
     # List commands
     if "-L" in opts or "--commands" in opts:

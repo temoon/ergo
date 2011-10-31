@@ -7,7 +7,7 @@ Setup for ERGO - Anarchy Online chat bot.
 """
 
 
-from setuptools import setup
+from distutils.core import setups
 
 
 setup(
