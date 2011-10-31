@@ -7,12 +7,12 @@ Setup for ERGO - Anarchy Online chat bot.
 """
 
 
-from distutils.core import setups
+from setuptools import setups
 
 
 setup(
     name         = "ergo",
-    version      = "0.1.0.6pa",
+    version      = "0.2.0.7pa",
     description  = "ERGO - Anarchy Online chat bot",
     author       = "Tema Novikov",
     author_email = "temoon@temoon.pp.ru",
