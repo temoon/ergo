@@ -7,30 +7,12 @@ Commands.
 """
 
 
+from ergo.core import Command, COMMANDS
 from aochat.aoml import *
 
 
-COMMANDS = {
-    # Dummy
-}
-
-
-class Command(object):
-    """
-    Command interpreter.
-    """
-    
-    def __init__(self, name, desc, callback, help = None):
-        self.name     = name
-        self.desc     = desc
-        self.callback = callback
-        self.help     = help
-        
-        # Register command
-        COMMANDS[name] = self
-
-
 ### CALLBACKS ##################################################################
+
 
 def help_callback(chat, player, args):
     if args and args[0] in COMMANDS:
@@ -71,7 +53,15 @@ def leave_help():
     return "Bot will kick you from private channel."
 
 
+def ban_callback(chat, player, args):
+    pass
+
+def ban_help():
+    return ""
+
+
 ### COMMANDS ###################################################################
+
 
 help = Command(
     name     = "help",

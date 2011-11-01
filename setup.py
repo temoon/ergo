@@ -24,12 +24,10 @@ setup(
     
     packages = (
         "ergo",
-        "ergo.commands",
     ),
     
     package_dir = {
-        "ergo":          "lib/ergo",
-        "ergo.commands": "lib/ergo/commands",
+        "ergo": "lib/ergo",
     },
     
     classifiers = (
